@@ -2,9 +2,9 @@ module alethic-ism-state-tables
 
 go 1.24
 
-require github.com/quantumwake/alethic-ism-core-go v0.1.13
+require github.com/quantumwake/alethic-ism-core-go v0.1.14
 
-replace github.com/quantumwake/alethic-ism-core-go => ../alethic-ism-core-go
+//replace github.com/quantumwake/alethic-ism-core-go => ../alethic-ism-core-go
 
 require (
 	github.com/google/uuid v1.6.0 // indirect

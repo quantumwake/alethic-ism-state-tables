@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alethic-ism-state-tables-deployment
+  namespace: alethic
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: alethic-ism-state-tables
+  template:
+    metadata:
+      labels:
+        app: alethic-ism-state-tables
+    spec:
+      volumes:
+        - name: alethic-ism-routes-secret-volume
+          secret:
+            secretName: alethic-ism-routes-secret
+            items:
+              - key: .routing.yaml
+                path: .routing.yaml
+      containers:
+      - name: alethic-ism-state-tables
+        image: <IMAGE>
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: alethic-ism-routes-secret-volume
+            mountPath: /app/repo/.routing.yaml
+            subPath: .routing.yaml
+            readOnly: true
+        env:
+          - name: ROUTING_FILE
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-state-tables-secret
+                key: ROUTING_FILE
+          - name: DSN
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-state-tables-secret
+                key: DSN
+      imagePullSecrets:
+      - name: regcred

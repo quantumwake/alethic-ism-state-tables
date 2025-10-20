@@ -2,7 +2,11 @@ module alethic-ism-state-tables
 
 go 1.24
 
-require github.com/quantumwake/alethic-ism-core-go v0.1.14
+require (
+	github.com/quantumwake/alethic-ism-core-go v0.1.15
+	gorm.io/driver/postgres v1.6.0
+	gorm.io/gorm v1.30.1
+)
 
 //replace github.com/quantumwake/alethic-ism-core-go => ../alethic-ism-core-go
 
@@ -24,6 +28,4 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/postgres v1.6.0 // indirect
-	gorm.io/gorm v1.30.1 // indirect
 )

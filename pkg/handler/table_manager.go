@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/quantumwake/alethic-ism-core-go/pkg/data/models"
+	"github.com/quantumwake/alethic-ism-core-go/pkg/repository/processor"
 	"github.com/quantumwake/alethic-ism-core-go/pkg/repository/processor/tables"
 )
 
@@ -15,11 +17,12 @@ type BatchWriter struct {
 	tableName string
 
 	mu         sync.Mutex
-	batch      []models.Data // Current batch of records waiting to be inserted
-	lastFlush  time.Time     // When we last flushed the batch
-	lastUsed   time.Time     // Track for cleanup of idle managers
-	tableReady bool          // Whether the table has been created
-	stopFlush  chan struct{} // Signal to stop background flush goroutine
+	batch      []models.Data   // Current batch of records waiting to be inserted
+	routeIDs   map[string]bool // Track unique routes in current batch for status publishing
+	lastFlush  time.Time       // When we last flushed the batch
+	lastUsed   time.Time       // Track for cleanup of idle managers
+	tableReady bool            // Whether the table has been created
+	stopFlush  chan struct{}   // Signal to stop background flush goroutine
 }
 
 // NewBatchWriter creates a new BatchWriter for a specific processor with the given configuration
@@ -35,6 +38,7 @@ func NewBatchWriter(processorID string, config *tables.TableProcessorConfig) *Ba
 		config:    config,
 		tableName: tableName,
 		batch:     make([]models.Data, 0),
+		routeIDs:  make(map[string]bool),
 		lastFlush: time.Now(),
 		lastUsed:  time.Now(),
 		stopFlush: make(chan struct{}),
@@ -49,11 +53,12 @@ func NewBatchWriter(processorID string, config *tables.TableProcessorConfig) *Ba
 }
 
 // Add appends records to the batch and flushes if size threshold is reached
-func (bw *BatchWriter) Add(records []models.Data) error {
+func (bw *BatchWriter) Add(routeID string, records []models.Data) error {
 	bw.mu.Lock()
 	defer bw.mu.Unlock()
 
 	bw.lastUsed = time.Now()
+	bw.routeIDs[routeID] = true
 
 	// Add timestamp to each record if configured
 	if bw.config.IncludeTimestamp != nil && *bw.config.IncludeTimestamp {
@@ -104,8 +109,14 @@ func (bw *BatchWriter) flush() error {
 		}
 	}
 
-	// Reset batch and update flush time
+	// Publish completion status for each route in the batch
+	for routeID := range bw.routeIDs {
+		PublishRouteStatus(context.Background(), routeID, processor.Completed, "", nil)
+	}
+
+	// Reset batch, routeIDs, and update flush time
 	bw.batch = bw.batch[:0]
+	bw.routeIDs = make(map[string]bool)
 	bw.lastFlush = time.Now()
 
 	return nil

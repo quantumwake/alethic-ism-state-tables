@@ -74,8 +74,14 @@ func (bw *BatchWriter) Add(routeID string, records []models.Data) error {
 	bw.batch = append(bw.batch, records...)
 
 	// Flush if we've reached the configured batch size
+	// TODO: Make async flush configurable via processor properties flag
 	if bw.config.BatchSize != nil && len(bw.batch) >= *bw.config.BatchSize {
-		return bw.flush()
+		go func() {
+			err := bw.Flush()
+			if err != nil {
+				fmt.Printf("error flushing batch writer: %v\n", err)
+			}
+		}()
 	}
 
 	return nil
